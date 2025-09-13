@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Restauracja Simulator [BETA]</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fff7ec;
+      padding: 20px;
+      margin: 0;
+      display: flex;
+    }
+    #menu {
+      width: 280px;
+      background: #fff3e0;
+      border-right: 2px solid #ffa726;
+      padding: 20px;
+      border-radius: 0 10px 10px 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    #menu h2 {
+      margin-top: 0;
+      color: #d35400;
+    }
+    #menu ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    #menu li {
+      background: #ffe0b2;
+      margin: 8px 0;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: left;
+      font-size: 14px;
+    }
+#reviews {
+  margin: 15px auto;
+  padding: 15px;
+  border-radius: 10px;
+  border: 2px solid #ffa726;
+  background: #fff8e1;
+  max-width: 600px;
+  font-size: 14px;
+  text-align: left;
+}
+
+.review {
+  background: #ffe0b2;
+  margin: 8px 0;
+  padding: 10px;
+  border-radius: 8px;
+  animation: fadeIn 0.5s;
+}
+.review .stars {
+  color: #fbc02d;
+  font-size: 16px;
+}
+#randomIngredientBtn {
+  background: #e53935;
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+#randomIngredientBtn:hover {
+  background: #c62828;
+}
+#randomIngredientBtn:disabled {
+  background: #888;
+  cursor: not-allowed;
+}
+    #main {
+      flex: 1;
+      padding: 20px;
+    }
+    h1 {
+      color: #d35400;
+    }
+    #stats, #upgrades, #dayStats, #log, #customerList {
+      margin: 15px auto;
+      padding: 15px;
+      border-radius: 10px;
+      border: 2px solid #ffa726;
+      background: #fff8e1;
+      max-width: 600px;
+    }
+    button {
+      margin: 6px;
+      padding: 10px 16px;
+      background: #ffa726;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .customer {
+      background: #ffe082;
+      margin: 8px;
+      padding: 10px;
+      border-radius: 8px;
+      animation: fadeIn 0.5s;
+    }
+    #cookProgress {
+      width: 90%;
+      height: 20px;
+      background: #ddd;
+      border-radius: 10px;
+      margin: 10px auto;
+      display: none;
+    }
+    #cookBar {
+      height: 100%;
+      background: #4caf50;
+      width: 0%;
+    }
+    #log {
+      max-height: 150px;
+      overflow-y: auto;
+      font-size: 14px;
+      text-align: left;
+    }
+    #ingredientsList {
+      background: #fff8e1;
+      border: 2px solid #ffa726;
+      border-radius: 10px;
+      max-width: 600px;
+      margin: 10px auto;
+      padding: 10px;
+      font-size: 14px;
+      text-align: left;
+    }
+    #ingredientsList ul {
+      list-style: none;
+      padding-left: 0;
+      margin: 0;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    #ingredientsList li {
+      background: #ffe0b2;
+      padding: 6px 12px;
+      border-radius: 6px;
+      min-width: 80px;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    #ingredientsList li:hover {
+      background: #ffc107;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- PANEL Z DANAMI -->
+<div id="menu">
+  <h2>🍽 Menu</h2>
+  <ul id="dishList"></ul>
+
+  <h2>🛒 Kup składniki</h2>
+  <ul id="buyIngredientsList"></ul>
+</div>
+
+<!-- GŁÓWNA CZĘŚĆ GRY -->
+<div id="main">
+  <h1>Restauracja Simulator [BETA]</h1>
+
+  <div id="stats">
+    <button id="randomIngredientBtn" onclick="buyRandomIngredient()">🎲 Losowy składnik (5 zł)</button>
+    <p>💰 Gotówka: <span id="cash">0</span> zł</p>
+    <p>📦 Składniki:</p>
+    <div id="ingredientsList"></div>
+    <p>📈 Poziom kuchni: <span id="level">1</span></p>
+
+    <!-- Przycisk nagrody -->
+    <button id="rewardButton" onclick="claimReward()" style="display:none;">🎁 Odbierz nagrodę!</button>
+    <p id="rewardTimer"></p>
+  </div>
+  
+  <div id="upgrades">
+    <h3>🔧 Ulepszenia</h3>
+    <div id="upgradesList"></div>
+  </div>
+
+  <button onclick="upgradeKitchen()">Ulepsz kuchnię za 250 zł</button>
+  <button id="toggleCustomersBtn" onclick="toggleCustomers()">⏸️ Wstrzymaj klientów</button>
+  <button onclick="resetGame()">Resetuj grę</button>
+
+  <div id="cookProgress"><div id="cookBar"></div></div>
+  
+  <div id="customerList"></div>
+
+  <div id="dayStats">
+    <p>📅 Dzień: <span id="day">1</span></p>
+    <p>🧍 Podane Dania: <span id="servedToday">0</span></p>
+    <p>💸 Zysk dziś: <span id="dailyProfit">0</span> zł</p>
+  </div>
+  
+  <div id="reviews">
+    <h3>📢 Opinie klientów</h3>
+    <div id="reviewsList"></div>
+  </div>
+
+  <div id="log"></div>
+</div>
+
+<script>
+let state = {
+  cash: 200,
+  ingredients: {
+    banan: 2,
+    bułka: 3,
+    camembert: 5,
+    chleb: 4,
+    cukier: 4,
+    cukier_puder: 4,
+    cytryna: 3,
+    czekolada: 5,
+    jabłko: 3,
+    jajko: 2,
+    kakao: 4,
+    lód: 3,
+    masło: 4,
+    masło_orzechowe: 7,
+    mąka: 5,
+    migdały: 1,
+    mleko: 5,
+    parówka: 1,
+    pomidor: 3,
+    ser_feta: 7,
+    ser_mozzarella: 4,
+    sos_czosnkowy: 4,
+    sos_pomidorowy: 4,
+    truskawka: 2,
+    woda: 2,
+    woda_gazowana: 3,
+    wołowina: 8,
+    ziemniak: 3
+  },
+  level: 1,
+  day: 1,
+  servedToday: 0,
+  dailyProfit: 0,
+  dailyVisitors: [],
+  upgrades: [],
+  moneyBonus: 1,
+  moneyPenalty: 1,
+  customers: []  
+};
+
+let rewardInterval = 600000;
+let nextRewardTime = 0;
+let rewardTimerInterval;
+let customersPaused = false;
+let customerInterval;
+let dayInterval;
+
+const allUpgrades = [
+  { name: "⚡ Szybki klient", effect: "customersFaster", desc: "Klienci przychodzą o 3% szybciej." },
+  { name: "💰 Money Money", effect: "moreMoney", desc: "Zyskujesz o 20% więcej pieniędzy, ale klienci przychodzą o 5% wolniej." },
+  { name: "🏷️ Tanio", effect: "cheaperFood", desc: "Zarabiasz o 10% mniej za dania, ale klienci przychodzą o 7% szybciej." }
+];
+
+const customerNames = ["Natalka", "Oskar", "Filip", "Ksawery", "Milena", "Nateo", "Marcel", "Janek", "Oliwia", "Dorian", "Sylwia", "Zuzia", "Julka", "Nikola", "Ewa", "Ola", "Rosti"];
+
+const favoriteOrders = {
+  "Natalka": ["SokOwocowy", "Tost"],
+  "Oskar": ["Wojanek", "Chipcy"],
+  "Filip": ["Pizza"],
+  "Ksawery": ["Pizza"],
+  "Milena": ["CiastkoCzekoladowe", "HotDog"],
+  "Nateo": ["Orzechberd", "Lipton", "Lipton"],
+  "Marcel": ["Kebab", "Chipcy"],
+  "Janek": ["Kebab", "Chipcy", "Stek"],
+  "Oliwia": ["Chipcy", "Chipcy"],
+  "Dorian": ["Kebab", "Wojanek"],
+  "Julka": ["Makaroniki", "Wojanek", "Naleśniki", "Chipcy"],
+  "Sylwia": ["Pizza"],
+  "Zuzia": ["Jabłecznik", "Burger"],
+  "Julka": ["HotDog"],
+  "Nikola": ["Chipcy", "Tost"],
+  "Ewa": ["Burger"],
+  "Łukasz": ["Burger", "Cola"],
+  "Ola": ["CiastkoCzekoladowe", "ShakeCzekoladowy"],
+  "Rosti": ["Tost", "Tost"],
+  "Ksawery": ["Kebab", "Tost", "Tost"],
+};
+
+const dishes = {
+  Burger: {
+    ingredients: { mąka: 1, wołowina: 1, ser_mozzarella: 1 },
+    price: 23
+  },
+  Chipcy: {
+    ingredients: { ziemniak: 4 },
+    price: 18
+  },
+  CiastkoCzekoladowe: {
+    ingredients: { mąka: 1, jajko: 1, czekolada: 1, cukier: 1, masło: 1 },
+    price: 22
+  },
+  Cola: {
+    ingredients: { cukier: 1, lód: 1, woda_gazowana: 1 },
+    price: 17
+  },
+  Frytki: {
+    ingredients: { ziemniak: 1 },
+    price: 7
+  },
+  GorącaCzekolada: {
+    ingredients: { czekolada: 1, mleko: 1 },
+    price: 14
+  },
+  HotDog: {
+    ingredients: { bułka: 1, parówka: 1, sos_pomidorowy: 1 },
+    price: 10
+  },
+  Jabłecznik: {
+    ingredients: { jabłko: 3, mąka: 1, cukier: 1, jajko: 4 },
+    price: 28
+  },
+  Jajecznica: {
+    ingredients: { jajko: 3 },
+    price: 12
+  },
+  Kakao: {
+    ingredients: { kakao: 1, mleko: 1 },
+    price: 12
+  },
+  Kebab: {
+    ingredients: { mąka: 1, wołowina: 2, sos_czosnkowy: 1 },
+    price: 55
+  },
+  Lipton: {
+    ingredients: { woda: 1, cytryna: 1, lód: 2 },
+    price: 55
+  },
+  Makaroniki: {
+    ingredients: { cukier_puder: 3, migdały: 6, jajko: 1 },
+    price: 23
+  },
+  Naleśniki: {
+    ingredients: { jajko: 5 },
+    price: 20
+  },
+  Orzechberd: {
+    ingredients: { bułka: 1, camembert: 1, masło_orzechowe: 1 },
+    price: 17
+  },
+  Pizza: {
+    ingredients: { mąka: 1, ser_mozzarella: 1, sos_pomidorowy: 1 },
+    price: 45
+  },
+  Salatka: {
+    ingredients: { pomidor: 1, ser_feta: 1, kapusta: 2 },
+    price: 20
+  },
+  ShakeCzekoladowy: {
+    ingredients: { mleko: 2, czekolada: 2, lód: 1 },
+    price: 35
+  },
+  SokOwocowy: {
+    ingredients: { jabłko: 1, truskawka: 1, banan: 1, woda: 1 },
+    price: 13
+  },
+  Stek: {
+    ingredients: { wołowina: 2 },
+    price: 26
+  },
+  Tost: {
+    ingredients: { ser_mozzarella: 1, chleb: 1, sos_pomidorowy: 1 },
+    price: 20
+  },
+  Wojanek: {
+    ingredients: { truskawka: 1, woda_gazowana: 1, cukier: 1 },
+    price: 12
+  },
+  ZupaPomidorowa: {
+    ingredients: { pomidor: 2, woda: 1 },
+    price: 14
+  }
+};
+
+const ingredientPrices = {
+  banan: 2,
+  bułka: 3,
+  camembert: 5,
+  chleb: 4,
+  cukier: 4,
+  cukier_puder: 4,
+  cytryna: 3,
+  czekolada: 5,
+  jabłko: 3,
+  jajko: 2,
+  kakao: 4,
+  lód: 3,
+  masło: 4,
+  masło_orzechowe: 7,
+  mąka: 5,
+  migdały: 1,
+  mleko: 5,
+  parówka: 1,
+  pomidor: 3,
+  ser_feta: 7,
+  ser_mozzarella: 4,
+  sos_czosnkowy: 4,
+  sos_pomidorowy: 4,
+  truskawka: 2,
+  woda: 2,
+  woda_gazowana: 3,
+  wołowina: 8,
+  ziemniak: 3
+};
+
+let isCooking = false;
+
+function buyRandomIngredient() {
+  const cost = 5;
+  if (state.cash < cost) {
+    log("❌ Za mało gotówki na losowy składnik!");
+    return;
+  }
+
+  state.cash -= cost;
+
+  let ingredients = Object.keys(ingredientPrices);
+  let randomIngredient = ingredients[Math.floor(Math.random() * ingredients.length)];
+
+  state.ingredients[randomIngredient] = (state.ingredients[randomIngredient] || 0) + 1;
+
+  log(`🎲 Kupiono losowy składnik: ${randomIngredient}`);
+  updateUI();
+}
+
+function toggleCustomers() {
+  customersPaused = !customersPaused;
+  const btn = document.getElementById("toggleCustomersBtn");
+
+  if (customersPaused) {
+    btn.textContent = "▶️ Wznów klientów i dni";
+    clearInterval(customerInterval);
+    clearInterval(dayInterval);
+    log("⏸️ Wstrzymano klientów i cykl dni.");
+  } else {
+    btn.textContent = "⏸️ Wstrzymaj klientów i dni";
+    customerLoop();
+    dayCycle();
+    log("▶️ Wznowiono klientów i cykl dni.");
+  }
+}
+
+function addReview(stars, text) {
+  const reviewBox = document.createElement("div");
+  reviewBox.className = "review";
+
+  let starsText = "⭐".repeat(stars) + "☆".repeat(5 - stars);
+
+  reviewBox.innerHTML = `
+    <div class="stars">${starsText}</div>
+    <div>${text}</div>
+  `;
+
+  document.getElementById("reviewsList").prepend(reviewBox);
+
+  setTimeout(() => {
+    reviewBox.remove();
+  }, 30000);
+}
+
+function log(msg) {
+  const time = new Date().toLocaleTimeString();
+  document.getElementById("log").innerHTML = `[${time}] ${msg}<br>` + document.getElementById("log").innerHTML;
+}
+
+function updateUI() {
+  document.getElementById("cash").textContent = state.cash;
+  document.getElementById("level").textContent = state.level;
+  document.getElementById("day").textContent = state.day;
+  document.getElementById("servedToday").textContent = state.servedToday;
+  document.getElementById("dailyProfit").textContent = state.dailyProfit;
+
+  renderDishList();
+  renderIngredientsList();
+  renderBuyIngredientsList();
+  saveGame();
+}
+
+function renderDishList() {
+  const list = document.getElementById("dishList");
+  list.innerHTML = "";
+  for (let dish in dishes) {
+    const item = dishes[dish];
+    let ingStr = Object.entries(item.ingredients)
+      .map(([k, v]) => `${v} ${k}`)
+      .join(", ");
+    let li = document.createElement("li");
+    li.innerHTML = `<strong>${dish}</strong><br>💰 ${item.price} zł<br>🧺 Wymaga: ${ingStr}`;
+    list.appendChild(li);
+  }
+}
+
+function renderIngredientsList() {
+  const container = document.getElementById("ingredientsList");
+  container.innerHTML = "<ul></ul>";
+  const ul = container.querySelector("ul");
+  for (let ing in state.ingredients) {
+    const li = document.createElement("li");
+    li.textContent = `${ing}: ${state.ingredients[ing]}`;
+    ul.appendChild(li);
+  }
+}
+
+function renderBuyIngredientsList() {
+  const list = document.getElementById("buyIngredientsList");
+  list.innerHTML = "";
+  for (let ing in ingredientPrices) {
+    let price = ingredientPrices[ing];
+    let li = document.createElement("li");
+    li.innerHTML = `${ing} - ${price} zł <button onclick="buyIngredient('${ing}')">Kup</button>`;
+    list.appendChild(li);
+  }
+}
+
+function buyIngredient(name) {
+  const price = ingredientPrices[name];
+  if (state.cash >= price) {
+    state.cash -= price;
+    state.ingredients[name] = (state.ingredients[name] || 0) + 1;
+    log(`Kupiono 1x ${name}`);
+    updateUI();
+  } else {
+    log(`Za mało gotówki na ${name}`);
+  }
+}
+
+function upgradeKitchen() {
+  const cost = 250; // stała cena za ulepszenie kuchni
+  if (state.cash >= cost) {
+    state.cash -= cost;
+    state.level += 1;
+    log("Ulepszono kuchnię do poziomu " + state.level);
+    checkForUpgradeUnlock();
+    updateUI();
+  } else {
+    log("Za mało gotówki na ulepszenie (koszt: " + cost + " zł).");
+  }
+}
+
+function checkForUpgradeUnlock() {
+  if (state.level % 5 === 0) {
+    let upgradeCost = 100 + ((state.level / 5 - 1) * 50); // rosnący koszt co 5 lvl
+    log(`🎉 Odblokowano nowe ulepszenie! Koszt: ${upgradeCost} zł`);
+    showUpgradeButton(upgradeCost);
+  }
+}
+
+function showUpgradeButton(cost) {
+  let list = document.getElementById("upgradesList");
+  let randomUpgrade = allUpgrades[Math.floor(Math.random() * allUpgrades.length)];
+
+  let div = document.createElement("div");
+  div.className = "upgrade";
+  div.innerHTML = `
+    <strong>${randomUpgrade.name}</strong><br>
+    <em>${randomUpgrade.desc}</em><br>
+    <button onclick="buyUpgrade('${randomUpgrade.effect}', ${cost}, this)">Kup (${cost} zł)</button>
+  `;
+  list.appendChild(div);
+}
+
+function buyUpgrade(effect, cost, button) {
+  if (state.cash < cost) {
+    log("❌ Za mało gotówki na ulepszenie!");
+    return;
+  }
+  state.cash -= cost;
+  state.upgrades.push(effect);
+
+  log(`✅ Kupiono ulepszenie: ${effect}`);
+  button.parentElement.remove();
+  applyUpgrade(effect);
+  updateUI();
+}
+
+function restartCustomerLoop() {
+  if (customerInterval) clearInterval(customerInterval);
+
+  // domyślny czas pojawienia się klienta = 10 sekund
+  let baseTime = 10000;
+
+  // spowolnienie od "Money Money"
+  if (state.customerSlowdown) {
+    baseTime *= (1 + state.customerSlowdown);
+  }
+
+  // przyspieszenie z innych upgrade'ów
+  if (state.customerSpeedBonus) {
+    baseTime *= (1 - state.customerSpeedBonus);
+  }
+
+  customerInterval = setInterval(() => {
+    if (!customersPaused && Math.random() < 0.4) {
+      addCustomer();
+    }
+  }, baseTime);
+}
+
+function applyUpgrade(effect, loading = false) {
+  switch (effect) {
+    case "customersFaster":
+      state.customerSpeedBonus = (state.customerSpeedBonus || 0) + 0.03;
+      restartCustomerLoop();
+      break;
+
+    case "moreMoney": // 💰 Money Money
+      state.moneyBonus = 1.2;          // +20% do ceny
+      state.customerSlowdown = 0.05;   // klienci wolniej
+      restartCustomerLoop();
+      break;
+
+    case "cheaperFood":
+      state.moneyPenalty = 0.9;        // -10% ceny
+      state.customerSpeedBonus = (state.customerSpeedBonus || 0) + 0.07; // szybciej
+      restartCustomerLoop();
+      break;
+  }
+
+  if (!loading) {
+    log(`✅ Kupiono ulepszenie: ${effect}`);
+  }
+}
+
+function resetGame() {
+  if (confirm("Czy na pewno chcesz zresetować grę? Wszystkie postępy zostaną utracone.")) {
+    localStorage.removeItem("restaurantGameSave");
+    state = {
+      cash: 200,
+      ingredients: { banan: 0, bułka: 0, camembert: 0, chleb: 0, cukier: 0, cukier_puder: 0, cytryna: 0, czekolada: 0, jabłko: 0, jajko: 0, kakao: 0, lód: 0, masło: 0, masło_orzechowe: 0, mąka: 0, migdały: 0, mleko: 0, parówka: 0, pomidor: 0, ser_feta: 0, ser_mozzarella: 0, sos_czosnkowy: 0, sos_pomidorowy: 0, truskawka: 0, woda: 0, woda_gazowana: 0, wołowina: 0, ziemniak: 0 },
+      level: 1,
+      day: 1,
+      servedToday: 0,
+      dailyProfit: 0,
+      dailyVisitors: [],
+      upgrades: [],
+      moneyBonus: 1,  
+      moneyPenalty: 1, 
+      customers: []
+    };
+    document.getElementById("customerList").innerHTML = "";
+    log("Gra została zresetowana.");
+    updateUI();
+  }
+}
+
+function addCustomer() {
+  const customer = document.createElement("div");
+  customer.className = "customer";
+
+  // Wylosuj imię
+  let name;
+  let attempts = 0;
+
+  do {
+    name = customerNames[Math.floor(Math.random() * customerNames.length)];
+    attempts++;
+    // zabezpieczenie, żeby nie zapętliło się, gdy wszyscy już byli
+    if (attempts > customerNames.length) return; 
+  } while (state.dailyVisitors.includes(name));
+
+  // Dodaj do listy odwiedzających w tym dniu
+  state.dailyVisitors.push(name);
+
+  // Pobierz ulubione zamówienie tej osoby
+  const orders = favoriteOrders[name] ? [...favoriteOrders[name]] : ["Burger"];
+
+  customer.dataset.orders = JSON.stringify(orders);
+
+  // Wyświetlamy zamówienia klienta z imieniem
+  customer.innerHTML = `👤 <strong>${name}</strong> chce:<br><ul>${orders.map(d => `<li><strong>${d}</strong></li>`).join("")}</ul>` +
+    `<button onclick="cookDish(this)">Ugotuj następne danie</button>`;
+
+  document.getElementById("customerList").appendChild(customer);
+  state.customers.push(customer);
+}
+
+function cookDish(button) {
+  const customer = button.parentElement;
+  const orders = JSON.parse(customer.dataset.orders);
+
+  if (orders.length === 0) {
+    log("Klient nie ma żadnych zamówień.");
+    state.servedToday += 1;
+    return;
+  }
+
+  const dishName = orders[0];
+  const dish = dishes[dishName];
+
+  // Sprawdź składniki
+  for (const ingredient in dish.ingredients) {
+    if ((state.ingredients[ingredient] || 0) < dish.ingredients[ingredient]) {
+      log(`Za mało składników: ${ingredient}`);
+      return;
+    }
+  }
+
+  button.disabled = true;
+  document.getElementById("cookProgress").style.display = "block";
+  let bar = document.getElementById("cookBar");
+  let progress = 0;
+  let duration = 3000 / state.level;
+
+  let interval = setInterval(() => {
+    progress += 100 / (duration / 100);
+    bar.style.width = progress + "%";
+    if (progress >= 100) {
+      clearInterval(interval);
+      bar.style.width = "0%";
+      document.getElementById("cookProgress").style.display = "none";
+
+      // Po ugotowaniu dania odejmij składniki i kasę
+      for (const ingredient in dish.ingredients) {
+        state.ingredients[ingredient] -= dish.ingredients[ingredient];
+      }
+      
+      const bonus = state.level;
+      let basePrice = dish.price + bonus;
+      let totalPrice = basePrice * state.moneyBonus * state.moneyPenalty;
+
+      state.cash += Math.floor(totalPrice);
+      state.dailyProfit += Math.floor(totalPrice);      
+
+      // Usuń ugotowane danie z listy zamówień
+      orders.shift();
+      customer.dataset.orders = JSON.stringify(orders);
+
+      log(`Podano ${dishName}. Zysk: ${dish.price} zł.`);
+      
+      if (Math.random() < 0.4) {
+        let tip = Math.floor(Math.random() * 20) + state.level * 3;
+        state.cash += tip;
+        state.dailyProfit += tip;
+        log(`💸 Klient ${customer.querySelector("strong").textContent} zostawił napiwek: ${tip} zł`);
+  }
+  
+      if (orders.length === 0) {
+        state.servedToday += 1;
+        customer.remove();
+        state.customers = state.customers.filter(c => c !== customer);
+        let stars = Math.floor(Math.random() * 2) + 4; // 4-5 gwiazdek
+        let reviewTexts = [
+         "Pyszne jedzenie, polecam!",
+         "Szybka i miła obsługa!",
+         "Bardzo smaczne, wrócę tu!",
+         "Idealnie doprawione!",
+         "Jedzenie przepyszne, jeszcze tu wrócę!",   
+         "Obsługa na medal, polecam każdemu!",    
+         "Smakowa eksplozja, aż chce się więcej!"   
+        ];
+        let text = reviewTexts[Math.floor(Math.random() * reviewTexts.length)];
+        addReview(stars, text);
+      }
+
+      if (orders.length === 0) {
+        // Wszystkie dania ugotowane, klient zadowolony odchodzi
+        state.servedToday += 1;
+        customer.remove();
+        state.customers = state.customers.filter(c => c !== customer);
+      } else {
+        // Włącz przycisk ponownie, żeby można było ugotować następne danie
+        button.disabled = false;
+        // Aktualizuj listę w UI
+        customer.querySelector("ul").innerHTML = orders.map(d => `<li><strong>${d}</strong></li>`).join("");
+      }
+      updateUI();
+    }
+  }, 100);
+}
+
+function finishCooking(button, dishName) {
+  const dish = dishes[dishName];
+  for (const ingredient in dish.ingredients) {
+    state.ingredients[ingredient] -= dish.ingredients[ingredient];
+  }
+  state.cash += dish.price;
+  state.dailyProfit += dish.price;
+  state.servedToday += 1;
+
+  // usuń klienta
+  const customer = button.parentElement;
+  customer.remove();
+
+  // usuń z tablicy klientów
+  state.customers = state.customers.filter(c => c !== customer);
+
+  log(`Podano ${dishName}. Zysk: ${dish.price} zł.`);
+  updateUI();
+}
+
+function customerLoop(extraSpeed = 0) {
+  let baseChance = 0.4; 
+  let finalChance = baseChance + extraSpeed - (state.customerSlowdown || 0);
+  if (finalChance < 0.05) finalChance = 0.05; // nie mniej niż 5%
+
+  customerInterval = setInterval(() => {
+    if (!customersPaused && Math.random() < finalChance) addCustomer();
+  }, 10000);
+}
+
+function dayCycle() {
+  dayInterval = setInterval(() => {
+    if (!customersPaused) {
+      state.day += 1;
+      state.dailyProfit = 0;
+      state.servedToday = 0;
+      state.dailyVisitors = []; 
+      log("📅 Nowy dzień: " + state.day);
+      updateUI();
+    }
+  }, 60000);
+}
+
+function saveGame() {
+  localStorage.setItem("restaurantState", JSON.stringify(state));
+}
+
+function loadGame() {
+  const saved = localStorage.getItem("restaurantState");
+  if (saved) {
+    state = JSON.parse(saved);
+
+    // 👇 naprawa błędu
+    if (!state.upgrades) {
+      state.upgrades = [];
+    }
+
+    // Przywracamy efekty kupionych ulepszeń
+    if (state.upgrades.length > 0) {
+      state.upgrades.forEach(effect => {
+        applyUpgrade(effect, true); // tryb loading
+      });
+    }
+  } else {
+    log("Nowa gra rozpoczęta.");
+  }
+
+  nextRewardTime = parseInt(localStorage.getItem("nextRewardTime")) || Date.now() + rewardInterval;
+  startRewardTimer();
+
+  updateUI();
+}
+
+/* Funkcja odbierania nagrody */
+function claimReward() {
+  let chance = Math.random();
+
+  if (chance < 0.5) {
+    // Nagroda: składnik
+    let ingredients = Object.keys(ingredientPrices);
+    let randomIngredient = ingredients[Math.floor(Math.random() * ingredients.length)];
+    state.ingredients[randomIngredient] = (state.ingredients[randomIngredient] || 0) + 1;
+    log(`🎁 Otrzymano losowy składnik: ${randomIngredient}`);
+  } else {
+    // Nagroda: gotówka
+    let cashReward = Math.floor(Math.random() * 196) + 5; // 5 - 200 zł
+    state.cash += cashReward;
+    log(`🎁 Otrzymano ${cashReward} zł`);
+  }
+
+  nextRewardTime = Date.now() + rewardInterval;
+  localStorage.setItem("nextRewardTime", nextRewardTime);
+
+  document.getElementById("rewardButton").style.display = "none";
+  startRewardTimer();
+  updateUI();
+}
+
+/* Timer nagrody */
+function startRewardTimer() {
+  if (rewardTimerInterval) clearInterval(rewardTimerInterval);
+
+  rewardTimerInterval = setInterval(() => {
+    let now = Date.now();
+    let remaining = nextRewardTime - now;
+
+    if (remaining <= 0) {
+      document.getElementById("rewardButton").style.display = "inline-block";
+      document.getElementById("rewardTimer").textContent = "Nagroda dostępna!";
+      clearInterval(rewardTimerInterval);
+    } else {
+      let seconds = Math.floor(remaining / 1000);
+      document.getElementById("rewardTimer").textContent = `⏳ Kolejna nagroda za ${seconds} sekund`;
+    }
+  }, 1000);
+}
+
+// Start
+loadGame();
+customerLoop();
+dayCycle();
+
+</script>
+
+</body>
+</html>

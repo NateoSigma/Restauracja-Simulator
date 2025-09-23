@@ -155,6 +155,15 @@
       cursor: pointer;
       user-select: none;
     }
+    .column {
+            background-color: #222;
+            padding: 60px 20px;
+            text-align: center;
+            border-radius: 15px;
+            box-shadow: 5px 5px 15px #000;
+            cursor: pointer;
+            transition: all 0.3s;
+    }
     #ingredientsList li:hover {
       background: #ffc107;
     }
@@ -177,7 +186,10 @@
 
 <!-- GŁÓWNA CZĘŚĆ GRY -->
 <div id="main">
-  <h1>Restauracja Simulator [BETA]</h1>
+  <h1>Restauracja Simulator</h1>
+  <div class="column">
+            <a href="https://nateosigma.github.io/Natro-Studios/">Wróć</a>
+  </div>
 
   <div id="stats">
     <button id="randomIngredientBtn" onclick="buyRandomIngredient()">🎲 Losowy składnik (5 zł)</button>
